@@ -1,18 +1,37 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Heart } from 'lucide-react';
+import { Camera, Heart, Play } from 'lucide-react';
 import { getTimeline } from '../utils/storage';
+import { FullScreenImage } from './FullScreenImage';
+import { PresentMode } from './PresentMode';
 
 export const Timeline = () => {
   const [items, setItems] = useState([]);
+  const [fullScreenImage, setFullScreenImage] = useState(null);
+  const [showPresentMode, setShowPresentMode] = useState(false);
 
   useEffect(() => {
     setItems(getTimeline());
   }, []);
 
+  const hasPhotos = items.some(item => item.image);
+
   return (
     <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="timeline-view">
-      <h2 className="font-serif text-2xl text-alive-text-primary mb-8 pl-8">You</h2>
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="font-serif text-2xl text-alive-text-primary pl-8">You</h2>
+        {hasPhotos && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowPresentMode(true)}
+            data-testid="present-mode-btn"
+            className="flex items-center gap-2 px-4 py-2 bg-alive-accent text-white rounded-full font-sans text-sm"
+          >
+            <Play className="w-4 h-4" fill="white" />
+            Present
+          </motion.button>
+        )}
+      </div>
       
       <div className="relative">
         {/* Vertical line */}
@@ -37,7 +56,10 @@ export const Timeline = () => {
               {/* Content card */}
               <div className="bg-white rounded-xl border border-alive-border overflow-hidden shadow-[0_10px_30px_-10px_rgba(220,38,38,0.08)]">
                 {/* Image area */}
-                <div className="aspect-video bg-alive-surface flex items-center justify-center">
+                <div 
+                  className="aspect-video bg-alive-surface flex items-center justify-center cursor-pointer"
+                  onClick={() => item.image && setFullScreenImage(item)}
+                >
                   {item.image ? (
                     <img
                       src={item.image}
@@ -71,6 +93,20 @@ export const Timeline = () => {
             No timeline items yet
           </p>
         </div>
+      )}
+
+      {/* Full screen image modal */}
+      {fullScreenImage && (
+        <FullScreenImage
+          imageData={fullScreenImage.image}
+          caption={fullScreenImage.caption}
+          onClose={() => setFullScreenImage(null)}
+        />
+      )}
+
+      {/* Present mode */}
+      {showPresentMode && (
+        <PresentMode onClose={() => setShowPresentMode(false)} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Check, X, Camera, Heart, Clock, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Camera, Heart, Clock, FileText, AlertCircle } from 'lucide-react';
 import {
   getReasons,
   addReason,
@@ -11,6 +11,57 @@ import {
   updateTimelineItem,
   deleteTimelineItem
 } from '../utils/storage';
+import { ImageCropper } from './ImageCropper';
+import { FullScreenImage } from './FullScreenImage';
+
+// Compress and convert image to JPEG
+const processImage = (file) => {
+  return new Promise((resolve, reject) => {
+    // Check file size - warn if over 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      console.warn('Large file detected, will compress');
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas for compression
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Max dimensions
+        const maxWidth = 1200;
+        const maxHeight = 1200;
+        
+        let { width, height } = img;
+        
+        // Scale down if needed
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG with 0.7 quality
+        const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedData);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
 
 export const EditorDashboard = ({ activeTab, onDataChange }) => {
   const [reasons, setReasons] = useState([]);
@@ -21,6 +72,10 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   const [newCaption, setNewCaption] = useState('');
   const [editingTimelineId, setEditingTimelineId] = useState(null);
   const [editingCaption, setEditingCaption] = useState('');
+  const [imageError, setImageError] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [fullScreenImage, setFullScreenImage] = useState(null);
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
@@ -28,6 +83,14 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     setReasons(getReasons());
     setTimeline(getTimeline());
   }, []);
+
+  // Clear error after 5 seconds
+  useEffect(() => {
+    if (imageError) {
+      const timer = setTimeout(() => setImageError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [imageError]);
 
   // Reasons handlers
   const handleAddReason = () => {
@@ -76,20 +139,46 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     onDataChange?.();
   };
 
-  const handleImageUpload = (e, isEdit = false, itemId = null) => {
+  const handleImageSelect = async (e, isEdit = false, itemId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageData = event.target?.result;
-      if (isEdit && itemId) {
-        handleUpdateTimelineItem(itemId, { image: imageData });
-      } else {
-        handleAddTimelineItem(imageData);
-      }
-    };
-    reader.readAsDataURL(file);
+    // Reset file input
+    e.target.value = '';
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+    if (!validTypes.includes(file.type.toLowerCase()) && !file.name.match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i)) {
+      setImageError('Please select a valid image file (JPG, PNG, GIF, WebP, HEIC)');
+      return;
+    }
+
+    try {
+      setImageError(null);
+      const compressedImage = await processImage(file);
+      
+      // Open cropper
+      setPendingImage(compressedImage);
+      setEditingItemId(isEdit ? itemId : null);
+    } catch (error) {
+      console.error('Image processing error:', error);
+      setImageError('Failed to process image. Please try a different file.');
+    }
+  };
+
+  const handleCropSave = (croppedImage) => {
+    if (editingItemId) {
+      handleUpdateTimelineItem(editingItemId, { image: croppedImage });
+    } else {
+      handleAddTimelineItem(croppedImage);
+    }
+    setPendingImage(null);
+    setEditingItemId(null);
+  };
+
+  const handleCropCancel = () => {
+    setPendingImage(null);
+    setEditingItemId(null);
   };
 
   // Tab 1: Reasons Why Editor
@@ -212,6 +301,22 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
           <h2 className="font-serif text-xl text-alive-text-primary">Edit Timeline</h2>
         </div>
 
+        {/* Error message */}
+        <AnimatePresence>
+          {imageError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3"
+              data-testid="image-error"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="font-sans text-sm text-red-700">{imageError}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Add new timeline item */}
         <div className="bg-alive-surface rounded-xl border border-alive-border p-4 mb-8">
           <input
@@ -225,9 +330,9 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
           <div className="flex gap-3">
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               ref={fileInputRef}
-              onChange={(e) => handleImageUpload(e, false)}
+              onChange={(e) => handleImageSelect(e, false)}
               className="hidden"
             />
             <motion.button
@@ -237,7 +342,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
               className="flex-1 bg-white border border-alive-border rounded-lg py-3 font-sans text-sm text-alive-text-muted flex items-center justify-center gap-2 hover:border-alive-accent transition-colors"
             >
               <Camera className="w-4 h-4" />
-              Add with image
+              Add with photo
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -270,22 +375,38 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                       <img
                         src={item.image}
                         alt={item.caption}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setFullScreenImage(item)}
                       />
-                      <button
-                        onClick={() => handleUpdateTimelineItem(item.id, { image: null })}
-                        className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <input
+                          type="file"
+                          accept="image/*,.heic,.heif"
+                          onChange={(e) => handleImageSelect(e, true, item.id)}
+                          className="hidden"
+                          id={`edit-image-${item.id}`}
+                        />
+                        <label
+                          htmlFor={`edit-image-${item.id}`}
+                          className="w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </label>
+                        <button
+                          onClick={() => handleUpdateTimelineItem(item.id, { image: null })}
+                          className="w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.heic,.heif"
                         ref={editFileInputRef}
-                        onChange={(e) => handleImageUpload(e, true, item.id)}
+                        onChange={(e) => handleImageSelect(e, true, item.id)}
                         className="hidden"
                       />
                       <button
@@ -293,7 +414,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                         className="flex flex-col items-center text-alive-text-muted hover:text-alive-accent transition-colors"
                       >
                         <Camera className="w-10 h-10 mb-2 opacity-50" />
-                        <span className="font-sans text-xs">Add image</span>
+                        <span className="font-sans text-xs">Add photo</span>
                       </button>
                     </div>
                   )}
@@ -364,6 +485,26 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
               No timeline items yet. Add your first memory above!
             </p>
           </div>
+        )}
+
+        {/* Image cropper modal */}
+        <AnimatePresence>
+          {pendingImage && (
+            <ImageCropper
+              imageData={pendingImage}
+              onSave={handleCropSave}
+              onCancel={handleCropCancel}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Full screen image */}
+        {fullScreenImage && (
+          <FullScreenImage
+            imageData={fullScreenImage.image}
+            caption={fullScreenImage.caption}
+            onClose={() => setFullScreenImage(null)}
+          />
         )}
       </div>
     );
