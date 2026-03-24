@@ -1,0 +1,138 @@
+{
+  "theme": "hybrid_dark_to_light",
+  "archetype": "Gothic Romance meets Medical Telemetry",
+  "typography": {
+    "primary_heading": {
+      "family": "Cormorant Garamond, serif",
+      "weights": ["300", "400", "600", "700"],
+      "usage": "Used for all major romantic declarations, password prompts, and title screens. Delivers a gothic, 19th-century editorial feel.",
+      "classes": "font-serif tracking-tight"
+    },
+    "script_accent": {
+      "family": "Great Vibes, cursive",
+      "weights": ["400"],
+      "usage": "Used strictly for the 'You are the reason...' reveal and personal, handwritten notes.",
+      "classes": "font-cursive"
+    },
+    "body_utility": {
+      "family": "Manrope, sans-serif",
+      "weights": ["300", "400", "500"],
+      "usage": "Used for timeline descriptions, editor inputs, and UI elements. Clean, modern, and highly legible on mobile.",
+      "classes": "font-sans leading-relaxed"
+    }
+  },
+  "colors": {
+    "void_state_dark": {
+      "background": "#050505",
+      "surface": "#0A0A0A",
+      "border": "#1A1A1A",
+      "text_muted": "#404040",
+      "text_primary": "#A3A3A3",
+      "accent_flatline": "#4A0000"
+    },
+    "alive_state_light": {
+      "background": "#FCFBF9",
+      "surface": "#FFFFFF",
+      "border": "#F3F2F0",
+      "text_muted": "#737373",
+      "text_primary": "#171717",
+      "accent_heartbeat": "#DC2626",
+      "accent_timeline": "#FCA5A5"
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Use an SVG noise overlay (opacity 0.03) fixed across all screens to kill the digital flatness and give it a film/paper texture.",
+    "cobwebs": "Pure SVG cobwebs placed in top corners of the Void screen. Set opacity to 15% and use 'mix-blend-mode: screen' or subtle stroke colors.",
+    "glassmorphism": "Use 'backdrop-blur-xl bg-white/70 border border-white/40' for the bottom navigation bar and editor modals in the Alive state.",
+    "shadows": "Alive state cards should use a diffuse, warm shadow: 'shadow-[0_20px_40px_-15px_rgba(220,38,38,0.1)]'."
+  },
+  "grids_and_layouts": {
+    "mobile_first": "Strictly mobile-first. Max width 100vw, full height 100dvh. Hide scrollbars completely.",
+    "void_screen": "Flex center. Absolute positioning for cobwebs. Minimalist.",
+    "swipe_deck": "Relative container taking up full available height minus nav bar. Cards are positioned absolute in the center. Use Framer Motion drag constraints.",
+    "timeline": "A vertical flex container. A 2px absolute vertical line down the left edge (or center). Items are offset cards with small pulsing dots on the line.",
+    "spacing_scale": "Use generous padding. p-6 or p-8 for standard card internal spacing. Massive margins (mb-12) between timeline sections."
+  },
+  "motion": {
+    "void_to_alive_transition": {
+      "trigger": "Clicking the flatlining heart.",
+      "action": "Flash bang effect (background color animates 0.1s to pure white). Flatline scales up and transitions into an aggressive heartbeat path. The shattered heart SVG paths translate and rotate back into a perfect whole.",
+      "audio": "Programmatic Web Audio API beep (low pitch) shifting to a warm, resonant heartbeat double-thump."
+    },
+    "swipe_cards": "Framer motion 'drag=\"x\"'. Rotate on drag: useTransform(x, [-200, 200], [-10, 10]). Opacity fades on exit. Next card scales up from 0.95 to 1.",
+    "timeline_reveal": "Scroll-triggered. Items slide up 20px and fade in. 'whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: \"-50px\" }}'."
+  },
+  "accessibility": {
+    "contrast": "Ensure the dark text in the Alive state hits APCA thresholds against the off-white background.",
+    "reduced_motion": "Wrap the flash-bang and complex heartbeat animations in a check for 'prefers-reduced-motion'.",
+    "touch_targets": "All bottom nav items, buttons, and swipe areas MUST be at least 48x48px."
+  },
+  "media": {
+    "audio": "Use simple Web Audio API oscillators for the flatline (continuous sine/sawtooth) and heartbeat (low-frequency pulsed sine). NO external audio files to keep it offline-friendly.",
+    "svg_assets": "Inline SVGs ONLY. No external image requests. Use path animations."
+  },
+  "3d_libraries": {
+    "usage": "None required. Framer Motion and standard SVG path animations are sufficient and better for mobile PWA battery life."
+  },
+  "image_urls": {
+    "instructions": "The prompt specified 'Simple SVG/CSS assets (no external image URLs)'. For the timeline images, rely on the user uploading via base64 in the editor, or use elegant CSS/SVG placeholders.",
+    "categories": []
+  },
+  "components": [
+    {
+      "component_name": "PasswordGate",
+      "component_path": "/app/frontend/src/components/PasswordGate.jsx",
+      "description": "The gothic entrance. Dim. Accepts two passwords."
+    },
+    {
+      "component_name": "HeartTransition",
+      "component_path": "/app/frontend/src/components/HeartTransition.jsx",
+      "description": "The interactive SVG heart that mends and shifts the app from dark to light."
+    },
+    {
+      "component_name": "SwipeDeck",
+      "component_path": "/app/frontend/src/components/SwipeDeck.jsx",
+      "description": "Tinder-style swipeable cards for 'Reasons Why'. Built with framer-motion."
+    },
+    {
+      "component_name": "Timeline",
+      "component_path": "/app/frontend/src/components/Timeline.jsx",
+      "description": "Vertical scrollable history."
+    },
+    {
+      "component_name": "EditorDashboard",
+      "component_path": "/app/frontend/src/components/EditorDashboard.jsx",
+      "description": "Brutalist white UI for CRUD operations on localStorage."
+    }
+  ],
+  "instructions_to_main_agent": [
+    "INITIALIZE THE PWA: Ensure manifest.json has 'display': 'standalone', 'orientation': 'portrait', and a theme_color that dynamically updates via meta tag based on the state (Void = #050505, Alive = #FCFBF9).",
+    "STORAGE: Create a robust localStorage wrapper in a utility file (`storage.js`). It must initialize default placeholders if empty, so the user sees a beautiful empty state or sample data.",
+    "STATE MANAGEMENT: Use React Context or Zustand to manage the global state: 'auth_role' (null | 'user' | 'editor') and 'app_stage' ('gate' | 'void_heart' | 'alive_main').",
+    "AUDIO: Write a custom hook `useHeartAudio.js` that uses `window.AudioContext` to generate the tones. This bypasses the need for assets. Flatline = continuous ~400Hz oscillator. Heartbeat = two rapid pulses of ~60Hz.",
+    "ROUTING: Since it's a simple PWA, you can use conditional rendering based on 'app_stage' instead of complex react-router setups. For the main alive state, use a bottom tab navigation.",
+    "SVG DESIGN: The broken heart MUST be constructed of distinct `<path>` elements so they can be animated independently. The flatline is a single `<path>` layered over it.",
+    "TESTING IDs: Ensure EVERY interactable element has a 'data-testid' (e.g., 'data-testid=\"password-input\"', 'data-testid=\"heart-trigger\"')."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Do not use dark colors as gradients. Dark colors look good when used independently.",
+    "Don't make generic centered layouts. Use asymmetrical spacing where possible.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for floating elements like the bottom nav.",
+    "You MUST NOT apply universal transition (e.g., 'transition: all'). Always target specific properties.",
+    "You MUST NOT center align the app container. Do not add '.App { text-align: center; }' in CSS.",
+    "Always use modern pill-shaped or sharp buttons with specific hover/tap states.",
+    "NEVER use emoji characters for icons. Use Lucide React.",
+    "Every interaction needs micro-animations (Framer motion 'whileTap={{ scale: 0.95 }}').",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Prioritize named exports for components and default exports for pages."
+  ],
+  "general_ui_ux_design_guidelines": [
+    "Optical alignment over geometrical alignment. Adjust paddings manually if an icon throws off the visual center.",
+    "In the void state, rely on negative space and extremely low contrast to create a feeling of emptiness.",
+    "In the alive state, use negative space to create a feeling of clarity and breathability.",
+    "Ensure all swipe gestures have satisfying physics (spring animations, not linear tweens).",
+    "Provide immediate visual feedback for all touches, as PWAs lack native touch feedback."
+  ]
+}
