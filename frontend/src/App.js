@@ -6,7 +6,7 @@ import { SwipeDeck } from './components/SwipeDeck';
 import { Timeline } from './components/Timeline';
 import { EditorDashboard } from './components/EditorDashboard';
 import { BottomNav } from './components/BottomNav';
-import { initializeStorage, getHasSeenHeart, setHasSeenHeart } from './utils/storage';
+import { initializeStorage } from './utils/storage';
 
 // App stages
 const STAGES = {
@@ -37,18 +37,12 @@ function App() {
       // Editor goes directly to main app
       setStage(STAGES.ALIVE_MAIN);
     } else {
-      // User sees heart animation if not seen before
-      const hasSeenHeart = getHasSeenHeart();
-      if (hasSeenHeart) {
-        setStage(STAGES.ALIVE_MAIN);
-      } else {
-        setStage(STAGES.VOID_HEART);
-      }
+      // User always sees heart animation on login
+      setStage(STAGES.VOID_HEART);
     }
   };
 
   const handleHeartComplete = () => {
-    setHasSeenHeart(true);
     setStage(STAGES.ALIVE_MAIN);
   };
 

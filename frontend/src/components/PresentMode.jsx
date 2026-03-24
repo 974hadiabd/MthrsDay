@@ -160,7 +160,7 @@ export const PresentMode = ({ onClose }) => {
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
         layout
       >
-        <p className="font-serif text-white text-lg text-center leading-relaxed">
+        <p className="font-serif text-white text-lg text-center leading-relaxed" style={{ fontFamily: "'Cairo', 'Cormorant Garamond', serif" }}>
           {truncatedCaption}
         </p>
         {isLongCaption && (

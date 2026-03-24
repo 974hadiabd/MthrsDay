@@ -32,7 +32,7 @@ export const FullScreenImage = ({ imageData, caption, onClose }) => {
       {/* Caption overlay */}
       {caption && (
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-          <p className="text-white font-serif text-lg text-center" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <p className="text-white font-serif text-lg text-center" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', fontFamily: "'Cairo', 'Cormorant Garamond', serif" }}>
             {caption}
           </p>
         </div>

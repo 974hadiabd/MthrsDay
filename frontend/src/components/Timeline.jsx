@@ -76,7 +76,7 @@ export const Timeline = () => {
 
                 {/* Caption */}
                 <div className="p-5">
-                  <p className="font-serif text-lg text-alive-text-primary leading-relaxed">
+                  <p className="font-serif text-lg text-alive-text-primary leading-relaxed" style={{ fontFamily: "'Cairo', 'Cormorant Garamond', serif" }}>
                     {item.caption}
                   </p>
                 </div>

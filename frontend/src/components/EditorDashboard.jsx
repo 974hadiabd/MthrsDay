@@ -253,7 +253,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-4">
-                    <p className="font-sans text-sm text-alive-text-primary flex-1">{reason.text}</p>
+                <p className="font-sans text-sm text-alive-text-primary flex-1" style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}>{reason.text}</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -450,7 +450,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-4">
-                      <p className="font-sans text-sm text-alive-text-primary flex-1">{item.caption}</p>
+                      <p className="font-sans text-sm text-alive-text-primary flex-1" style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}>{item.caption}</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
