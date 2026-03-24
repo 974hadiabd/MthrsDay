@@ -8,7 +8,11 @@
 }
 
 .font-sans {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Manrope', 'Cairo', sans-serif;
+}
+
+.font-arabic {
+  font-family: 'Cairo', 'Manrope', sans-serif;
 }
 
 /* Safe area utilities */

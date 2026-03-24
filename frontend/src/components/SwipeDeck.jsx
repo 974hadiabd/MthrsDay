@@ -87,7 +87,7 @@ export const SwipeDeck = () => {
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-6">
               <Heart className="w-6 h-6 text-alive-accent" fill="#DC2626" />
             </div>
-            <p className="font-serif text-xl text-alive-text-primary text-center leading-relaxed">
+            <p className="font-serif text-xl text-alive-text-primary text-center leading-relaxed" style={{ fontFamily: "'Cairo', 'Cormorant Garamond', serif" }}>
               {reasons[currentIndex]?.text}
             </p>
             <span className="font-sans text-xs text-alive-text-muted mt-6">
