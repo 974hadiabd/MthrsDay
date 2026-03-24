@@ -1,0 +1,378 @@
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2, Edit2, Check, X, Camera, Heart, Clock, FileText } from 'lucide-react';
+import {
+  getReasons,
+  addReason,
+  updateReason,
+  deleteReason,
+  getTimeline,
+  addTimelineItem,
+  updateTimelineItem,
+  deleteTimelineItem
+} from '../utils/storage';
+
+export const EditorDashboard = ({ activeTab, onDataChange }) => {
+  const [reasons, setReasons] = useState([]);
+  const [timeline, setTimeline] = useState([]);
+  const [newReason, setNewReason] = useState('');
+  const [editingReasonId, setEditingReasonId] = useState(null);
+  const [editingReasonText, setEditingReasonText] = useState('');
+  const [newCaption, setNewCaption] = useState('');
+  const [editingTimelineId, setEditingTimelineId] = useState(null);
+  const [editingCaption, setEditingCaption] = useState('');
+  const fileInputRef = useRef(null);
+  const editFileInputRef = useRef(null);
+
+  useEffect(() => {
+    setReasons(getReasons());
+    setTimeline(getTimeline());
+  }, []);
+
+  // Reasons handlers
+  const handleAddReason = () => {
+    if (!newReason.trim()) return;
+    const updated = addReason(newReason.trim());
+    setReasons(updated);
+    setNewReason('');
+    onDataChange?.();
+  };
+
+  const handleUpdateReason = (id) => {
+    if (!editingReasonText.trim()) return;
+    const updated = updateReason(id, editingReasonText.trim());
+    setReasons(updated);
+    setEditingReasonId(null);
+    setEditingReasonText('');
+    onDataChange?.();
+  };
+
+  const handleDeleteReason = (id) => {
+    const updated = deleteReason(id);
+    setReasons(updated);
+    onDataChange?.();
+  };
+
+  // Timeline handlers
+  const handleAddTimelineItem = (imageData = null) => {
+    if (!newCaption.trim() && !imageData) return;
+    const updated = addTimelineItem(newCaption.trim() || 'New memory', imageData);
+    setTimeline(updated);
+    setNewCaption('');
+    onDataChange?.();
+  };
+
+  const handleUpdateTimelineItem = (id, updates) => {
+    const updated = updateTimelineItem(id, updates);
+    setTimeline(updated);
+    setEditingTimelineId(null);
+    setEditingCaption('');
+    onDataChange?.();
+  };
+
+  const handleDeleteTimelineItem = (id) => {
+    const updated = deleteTimelineItem(id);
+    setTimeline(updated);
+    onDataChange?.();
+  };
+
+  const handleImageUpload = (e, isEdit = false, itemId = null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageData = event.target?.result;
+      if (isEdit && itemId) {
+        handleUpdateTimelineItem(itemId, { image: imageData });
+      } else {
+        handleAddTimelineItem(imageData);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Tab 1: Reasons Why Editor
+  if (activeTab === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-reasons">
+        <div className="flex items-center gap-3 mb-8">
+          <FileText className="w-5 h-5 text-alive-accent" />
+          <h2 className="font-serif text-xl text-alive-text-primary">Edit Reasons Why</h2>
+        </div>
+
+        {/* Add new reason */}
+        <div className="flex gap-3 mb-8">
+          <input
+            type="text"
+            value={newReason}
+            onChange={(e) => setNewReason(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
+            placeholder="Add a new reason..."
+            data-testid="new-reason-input"
+            className="flex-1 bg-alive-surface border border-alive-border rounded-lg px-4 py-3 font-sans text-sm text-alive-text-primary placeholder-alive-text-muted focus:outline-none focus:border-alive-accent transition-colors"
+          />
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleAddReason}
+            data-testid="add-reason-btn"
+            className="w-12 h-12 bg-alive-accent text-white rounded-lg flex items-center justify-center"
+          >
+            <Plus className="w-5 h-5" />
+          </motion.button>
+        </div>
+
+        {/* Reasons list */}
+        <div className="space-y-3">
+          <AnimatePresence>
+            {reasons.map((reason, index) => (
+              <motion.div
+                key={reason.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className="bg-white rounded-lg border border-alive-border p-4"
+                data-testid={`reason-item-${index}`}
+              >
+                {editingReasonId === reason.id ? (
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={editingReasonText}
+                      onChange={(e) => setEditingReasonText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateReason(reason.id)}
+                      data-testid={`edit-reason-input-${index}`}
+                      className="flex-1 bg-alive-surface border border-alive-border rounded px-3 py-2 font-sans text-sm focus:outline-none focus:border-alive-accent"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleUpdateReason(reason.id)}
+                      data-testid={`save-reason-${index}`}
+                      className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingReasonId(null);
+                        setEditingReasonText('');
+                      }}
+                      className="w-10 h-10 bg-gray-200 text-gray-600 rounded flex items-center justify-center"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="font-sans text-sm text-alive-text-primary flex-1">{reason.text}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingReasonId(reason.id);
+                          setEditingReasonText(reason.text);
+                        }}
+                        data-testid={`edit-reason-${index}`}
+                        className="w-8 h-8 text-alive-text-muted hover:text-alive-accent transition-colors flex items-center justify-center"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteReason(reason.id)}
+                        data-testid={`delete-reason-${index}`}
+                        className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {reasons.length === 0 && (
+          <div className="text-center py-12" data-testid="editor-reasons-empty">
+            <Heart className="w-12 h-12 text-alive-text-muted opacity-30 mx-auto mb-4" />
+            <p className="font-sans text-sm text-alive-text-muted">
+              No reasons added yet. Add your first reason above!
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Tab 2: Timeline Editor
+  if (activeTab === 1) {
+    return (
+      <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-timeline">
+        <div className="flex items-center gap-3 mb-8">
+          <Clock className="w-5 h-5 text-alive-accent" />
+          <h2 className="font-serif text-xl text-alive-text-primary">Edit Timeline</h2>
+        </div>
+
+        {/* Add new timeline item */}
+        <div className="bg-alive-surface rounded-xl border border-alive-border p-4 mb-8">
+          <input
+            type="text"
+            value={newCaption}
+            onChange={(e) => setNewCaption(e.target.value)}
+            placeholder="Caption for new memory..."
+            data-testid="new-timeline-caption"
+            className="w-full bg-white border border-alive-border rounded-lg px-4 py-3 font-sans text-sm text-alive-text-primary placeholder-alive-text-muted focus:outline-none focus:border-alive-accent transition-colors mb-3"
+          />
+          <div className="flex gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={(e) => handleImageUpload(e, false)}
+              className="hidden"
+            />
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="add-timeline-with-image"
+              className="flex-1 bg-white border border-alive-border rounded-lg py-3 font-sans text-sm text-alive-text-muted flex items-center justify-center gap-2 hover:border-alive-accent transition-colors"
+            >
+              <Camera className="w-4 h-4" />
+              Add with image
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleAddTimelineItem()}
+              data-testid="add-timeline-btn"
+              className="flex-1 bg-alive-accent text-white rounded-lg py-3 font-sans text-sm flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add caption only
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Timeline items */}
+        <div className="space-y-4">
+          <AnimatePresence>
+            {timeline.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className="bg-white rounded-xl border border-alive-border overflow-hidden"
+                data-testid={`timeline-edit-item-${index}`}
+              >
+                {/* Image */}
+                <div className="aspect-video bg-alive-surface relative">
+                  {item.image ? (
+                    <>
+                      <img
+                        src={item.image}
+                        alt={item.caption}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleUpdateTimelineItem(item.id, { image: null })}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={editFileInputRef}
+                        onChange={(e) => handleImageUpload(e, true, item.id)}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => editFileInputRef.current?.click()}
+                        className="flex flex-col items-center text-alive-text-muted hover:text-alive-accent transition-colors"
+                      >
+                        <Camera className="w-10 h-10 mb-2 opacity-50" />
+                        <span className="font-sans text-xs">Add image</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Caption editor */}
+                <div className="p-4">
+                  {editingTimelineId === item.id ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editingCaption}
+                        onChange={(e) => setEditingCaption(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleUpdateTimelineItem(item.id, { caption: editingCaption })}
+                        className="flex-1 bg-alive-surface border border-alive-border rounded px-3 py-2 font-sans text-sm focus:outline-none focus:border-alive-accent"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleUpdateTimelineItem(item.id, { caption: editingCaption })}
+                        className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingTimelineId(null);
+                          setEditingCaption('');
+                        }}
+                        className="w-10 h-10 bg-gray-200 text-gray-600 rounded flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="font-sans text-sm text-alive-text-primary flex-1">{item.caption}</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingTimelineId(item.id);
+                            setEditingCaption(item.caption);
+                          }}
+                          data-testid={`edit-timeline-${index}`}
+                          className="w-8 h-8 text-alive-text-muted hover:text-alive-accent transition-colors flex items-center justify-center"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTimelineItem(item.id)}
+                          data-testid={`delete-timeline-${index}`}
+                          className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {timeline.length === 0 && (
+          <div className="text-center py-12" data-testid="editor-timeline-empty">
+            <Clock className="w-12 h-12 text-alive-text-muted opacity-30 mx-auto mb-4" />
+            <p className="font-sans text-sm text-alive-text-muted">
+              No timeline items yet. Add your first memory above!
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Tab 3: Blank white screen (editor only)
+  return (
+    <div className="flex-1 bg-white" data-testid="editor-blank-tab">
+      {/* Intentionally blank */}
+    </div>
+  );
+};

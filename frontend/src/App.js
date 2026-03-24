@@ -1,52 +1,115 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { useState, useEffect } from 'react';
+import './App.css';
+import { PasswordGate } from './components/PasswordGate';
+import { HeartTransition } from './components/HeartTransition';
+import { SwipeDeck } from './components/SwipeDeck';
+import { Timeline } from './components/Timeline';
+import { EditorDashboard } from './components/EditorDashboard';
+import { BottomNav } from './components/BottomNav';
+import { initializeStorage, getHasSeenHeart, setHasSeenHeart } from './utils/storage';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
+// App stages
+const STAGES = {
+  GATE: 'gate',
+  VOID_HEART: 'void_heart',
+  ALIVE_MAIN: 'alive_main'
 };
 
 function App() {
+  const [stage, setStage] = useState(STAGES.GATE);
+  const [role, setRole] = useState(null); // 'user' | 'editor'
+  const [activeTab, setActiveTab] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    initializeStorage();
+    // Update theme color meta tag
+    const themeColorMeta = document.getElementById('theme-color-meta');
+    if (themeColorMeta) {
+      themeColorMeta.content = stage === STAGES.ALIVE_MAIN ? '#FCFBF9' : '#050505';
+    }
+  }, [stage]);
+
+  const handleAuthenticate = (userRole) => {
+    setRole(userRole);
+    
+    if (userRole === 'editor') {
+      // Editor goes directly to main app
+      setStage(STAGES.ALIVE_MAIN);
+    } else {
+      // User sees heart animation if not seen before
+      const hasSeenHeart = getHasSeenHeart();
+      if (hasSeenHeart) {
+        setStage(STAGES.ALIVE_MAIN);
+      } else {
+        setStage(STAGES.VOID_HEART);
+      }
+    }
+  };
+
+  const handleHeartComplete = () => {
+    setHasSeenHeart(true);
+    setStage(STAGES.ALIVE_MAIN);
+  };
+
+  const handleDataChange = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
+
+  // Render password gate
+  if (stage === STAGES.GATE) {
+    return <PasswordGate onAuthenticate={handleAuthenticate} />;
+  }
+
+  // Render heart transition (user only, first time)
+  if (stage === STAGES.VOID_HEART) {
+    return <HeartTransition onComplete={handleHeartComplete} />;
+  }
+
+  // Render main app
+  const isEditor = role === 'editor';
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="fixed inset-0 bg-alive-bg overflow-hidden" data-testid="main-app">
+      {/* Safe area top */}
+      <div className="h-safe-area-top bg-alive-bg" />
+      
+      {/* Main content */}
+      <div className="flex flex-col h-full pb-24">
+        {/* Tab content */}
+        {activeTab === 0 && (
+          isEditor ? (
+            <EditorDashboard 
+              key={`editor-reasons-${refreshKey}`}
+              activeTab={0} 
+              onDataChange={handleDataChange} 
+            />
+          ) : (
+            <SwipeDeck key={`swipe-${refreshKey}`} />
+          )
+        )}
+        {activeTab === 1 && (
+          isEditor ? (
+            <EditorDashboard 
+              key={`editor-timeline-${refreshKey}`}
+              activeTab={1} 
+              onDataChange={handleDataChange} 
+            />
+          ) : (
+            <Timeline key={`timeline-${refreshKey}`} />
+          )
+        )}
+        {activeTab === 2 && isEditor && (
+          <EditorDashboard activeTab={2} />
+        )}
+      </div>
+
+      {/* Bottom navigation */}
+      <BottomNav 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        isEditor={isEditor} 
+      />
     </div>
   );
 }

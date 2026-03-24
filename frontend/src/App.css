@@ -1,34 +1,49 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Font classes */
+.font-serif {
+  font-family: 'Cormorant Garamond', serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.font-cursive {
+  font-family: 'Great Vibes', cursive;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.font-sans {
+  font-family: 'Manrope', sans-serif;
 }
 
-.App-link {
-    color: #61dafb;
+/* Safe area utilities */
+.h-safe-area-top {
+  height: env(safe-area-inset-top, 0px);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar but allow scrolling */
+.overflow-y-auto {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch optimizations */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent pull-to-refresh */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* PWA standalone mode adjustments */
+@media all and (display-mode: standalone) {
+  .h-safe-area-top {
+    height: env(safe-area-inset-top, 20px);
+  }
 }
