@@ -1,135 +1,97 @@
-// Storage utility for localStorage management
-// USER PASSWORD: Change the value below to set a custom user password
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+
+// Passwords - Change USER_PASSWORD here to set a custom user password
 export const USER_PASSWORD = '1234';
 export const EDITOR_PASSWORD = 'Hxdi.132';
 
-const STORAGE_KEYS = {
-  REASONS: 'beats_reasons',
-  TIMELINE: 'beats_timeline',
-  HAS_SEEN_HEART: 'beats_has_seen_heart'
+// ============ REASONS API ============
+
+export const getReasons = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/reasons`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching reasons:', error);
+    return [];
+  }
 };
 
-// Default data structures
-const getDefaultReasons = () => [];
-
-const getDefaultTimeline = () => [
-  {
-    id: '1',
-    image: null,
-    caption: 'Our first moment together',
-    date: new Date().toISOString()
-  },
-  {
-    id: '2',
-    image: null,
-    caption: 'A memory we made',
-    date: new Date().toISOString()
-  },
-  {
-    id: '3',
-    image: null,
-    caption: 'Forever cherished',
-    date: new Date().toISOString()
+export const addReason = async (text) => {
+  try {
+    const response = await axios.post(`${API_URL}/reasons`, { text });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding reason:', error);
+    throw error;
   }
-];
+};
 
-// Initialize storage with defaults if empty
+export const updateReason = async (id, text) => {
+  try {
+    const response = await axios.put(`${API_URL}/reasons/${id}`, { text });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating reason:', error);
+    throw error;
+  }
+};
+
+export const deleteReason = async (id) => {
+  try {
+    await axios.delete(`${API_URL}/reasons/${id}`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting reason:', error);
+    throw error;
+  }
+};
+
+// ============ TIMELINE API ============
+
+export const getTimeline = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/timeline`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching timeline:', error);
+    return [];
+  }
+};
+
+export const addTimelineItem = async (caption, image = null) => {
+  try {
+    const response = await axios.post(`${API_URL}/timeline`, { caption, image });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding timeline item:', error);
+    throw error;
+  }
+};
+
+export const updateTimelineItem = async (id, updates) => {
+  try {
+    const response = await axios.put(`${API_URL}/timeline/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating timeline item:', error);
+    throw error;
+  }
+};
+
+export const deleteTimelineItem = async (id) => {
+  try {
+    await axios.delete(`${API_URL}/timeline/${id}`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting timeline item:', error);
+    throw error;
+  }
+};
+
+// ============ INITIALIZATION ============
+
 export const initializeStorage = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.REASONS)) {
-    localStorage.setItem(STORAGE_KEYS.REASONS, JSON.stringify(getDefaultReasons()));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.TIMELINE)) {
-    localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(getDefaultTimeline()));
-  }
-};
-
-// Reasons CRUD
-export const getReasons = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.REASONS);
-    return data ? JSON.parse(data) : getDefaultReasons();
-  } catch {
-    return getDefaultReasons();
-  }
-};
-
-export const setReasons = (reasons) => {
-  localStorage.setItem(STORAGE_KEYS.REASONS, JSON.stringify(reasons));
-};
-
-export const addReason = (text) => {
-  const reasons = getReasons();
-  reasons.push({
-    id: Date.now().toString(),
-    text
-  });
-  setReasons(reasons);
-  return reasons;
-};
-
-export const updateReason = (id, text) => {
-  const reasons = getReasons();
-  const index = reasons.findIndex(r => r.id === id);
-  if (index !== -1) {
-    reasons[index].text = text;
-    setReasons(reasons);
-  }
-  return reasons;
-};
-
-export const deleteReason = (id) => {
-  const reasons = getReasons().filter(r => r.id !== id);
-  setReasons(reasons);
-  return reasons;
-};
-
-// Timeline CRUD
-export const getTimeline = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.TIMELINE);
-    return data ? JSON.parse(data) : getDefaultTimeline();
-  } catch {
-    return getDefaultTimeline();
-  }
-};
-
-export const setTimeline = (timeline) => {
-  localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
-};
-
-export const addTimelineItem = (caption, image = null) => {
-  const timeline = getTimeline();
-  timeline.push({
-    id: Date.now().toString(),
-    image,
-    caption,
-    date: new Date().toISOString()
-  });
-  setTimeline(timeline);
-  return timeline;
-};
-
-export const updateTimelineItem = (id, updates) => {
-  const timeline = getTimeline();
-  const index = timeline.findIndex(t => t.id === id);
-  if (index !== -1) {
-    timeline[index] = { ...timeline[index], ...updates };
-    setTimeline(timeline);
-  }
-  return timeline;
-};
-
-export const deleteTimelineItem = (id) => {
-  const timeline = getTimeline().filter(t => t.id !== id);
-  setTimeline(timeline);
-  return timeline;
-};
-
-// Heart seen state
-export const getHasSeenHeart = () => {
-  return localStorage.getItem(STORAGE_KEYS.HAS_SEEN_HEART) === 'true';
-};
-
-export const setHasSeenHeart = (value) => {
-  localStorage.setItem(STORAGE_KEYS.HAS_SEEN_HEART, value.toString());
+  console.log('Cloud sync enabled - data syncs across all devices');
 };

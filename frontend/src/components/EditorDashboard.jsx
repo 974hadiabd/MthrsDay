@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Check, X, Camera, Heart, Clock, FileText, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Camera, Heart, Clock, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   getReasons,
   addReason,
@@ -17,7 +17,6 @@ import { FullScreenImage } from './FullScreenImage';
 // Compress and convert image to JPEG
 const processImage = (file) => {
   return new Promise((resolve, reject) => {
-    // Check file size - warn if over 5MB
     if (file.size > 5 * 1024 * 1024) {
       console.warn('Large file detected, will compress');
     }
@@ -26,17 +25,14 @@ const processImage = (file) => {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Create canvas for compression
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // Max dimensions
         const maxWidth = 1200;
         const maxHeight = 1200;
         
         let { width, height } = img;
         
-        // Scale down if needed
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height);
           width = Math.round(width * ratio);
@@ -46,12 +42,10 @@ const processImage = (file) => {
         canvas.width = width;
         canvas.height = height;
         
-        // Draw and compress
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to JPEG with 0.7 quality
         const compressedData = canvas.toDataURL('image/jpeg', 0.7);
         resolve(compressedData);
       };
@@ -66,6 +60,8 @@ const processImage = (file) => {
 export const EditorDashboard = ({ activeTab, onDataChange }) => {
   const [reasons, setReasons] = useState([]);
   const [timeline, setTimeline] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [newReason, setNewReason] = useState('');
   const [editingReasonId, setEditingReasonId] = useState(null);
   const [editingReasonText, setEditingReasonText] = useState('');
@@ -79,12 +75,25 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
-  useEffect(() => {
-    setReasons(getReasons());
-    setTimeline(getTimeline());
+  const fetchReasons = useCallback(async () => {
+    const data = await getReasons();
+    setReasons(data);
   }, []);
 
-  // Clear error after 5 seconds
+  const fetchTimeline = useCallback(async () => {
+    const data = await getTimeline();
+    setTimeline(data);
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchReasons(), fetchTimeline()]);
+      setLoading(false);
+    };
+    loadData();
+  }, [fetchReasons, fetchTimeline]);
+
   useEffect(() => {
     if (imageError) {
       const timer = setTimeout(() => setImageError(null), 5000);
@@ -93,60 +102,97 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   }, [imageError]);
 
   // Reasons handlers
-  const handleAddReason = () => {
-    if (!newReason.trim()) return;
-    const updated = addReason(newReason.trim());
-    setReasons(updated);
-    setNewReason('');
-    onDataChange?.();
+  const handleAddReason = async () => {
+    if (!newReason.trim() || saving) return;
+    setSaving(true);
+    try {
+      await addReason(newReason.trim());
+      await fetchReasons();
+      setNewReason('');
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to add reason. Please try again.');
+    }
+    setSaving(false);
   };
 
-  const handleUpdateReason = (id) => {
-    if (!editingReasonText.trim()) return;
-    const updated = updateReason(id, editingReasonText.trim());
-    setReasons(updated);
-    setEditingReasonId(null);
-    setEditingReasonText('');
-    onDataChange?.();
+  const handleUpdateReason = async (id) => {
+    if (!editingReasonText.trim() || saving) return;
+    setSaving(true);
+    try {
+      await updateReason(id, editingReasonText.trim());
+      await fetchReasons();
+      setEditingReasonId(null);
+      setEditingReasonText('');
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to update reason. Please try again.');
+    }
+    setSaving(false);
   };
 
-  const handleDeleteReason = (id) => {
-    const updated = deleteReason(id);
-    setReasons(updated);
-    onDataChange?.();
+  const handleDeleteReason = async (id) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await deleteReason(id);
+      await fetchReasons();
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to delete reason. Please try again.');
+    }
+    setSaving(false);
   };
 
   // Timeline handlers
-  const handleAddTimelineItem = (imageData = null) => {
-    if (!newCaption.trim() && !imageData) return;
-    const updated = addTimelineItem(newCaption.trim() || 'New memory', imageData);
-    setTimeline(updated);
-    setNewCaption('');
-    onDataChange?.();
+  const handleAddTimelineItem = async (imageData = null) => {
+    if ((!newCaption.trim() && !imageData) || saving) return;
+    setSaving(true);
+    try {
+      await addTimelineItem(newCaption.trim() || 'New memory', imageData);
+      await fetchTimeline();
+      setNewCaption('');
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to add timeline item. Please try again.');
+    }
+    setSaving(false);
   };
 
-  const handleUpdateTimelineItem = (id, updates) => {
-    const updated = updateTimelineItem(id, updates);
-    setTimeline(updated);
-    setEditingTimelineId(null);
-    setEditingCaption('');
-    onDataChange?.();
+  const handleUpdateTimelineItem = async (id, updates) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateTimelineItem(id, updates);
+      await fetchTimeline();
+      setEditingTimelineId(null);
+      setEditingCaption('');
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to update timeline item. Please try again.');
+    }
+    setSaving(false);
   };
 
-  const handleDeleteTimelineItem = (id) => {
-    const updated = deleteTimelineItem(id);
-    setTimeline(updated);
-    onDataChange?.();
+  const handleDeleteTimelineItem = async (id) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await deleteTimelineItem(id);
+      await fetchTimeline();
+      onDataChange?.();
+    } catch (error) {
+      setImageError('Failed to delete timeline item. Please try again.');
+    }
+    setSaving(false);
   };
 
   const handleImageSelect = async (e, isEdit = false, itemId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset file input
     e.target.value = '';
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
     if (!validTypes.includes(file.type.toLowerCase()) && !file.name.match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i)) {
       setImageError('Please select a valid image file (JPG, PNG, GIF, WebP, HEIC)');
@@ -156,8 +202,6 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     try {
       setImageError(null);
       const compressedImage = await processImage(file);
-      
-      // Open cropper
       setPendingImage(compressedImage);
       setEditingItemId(isEdit ? itemId : null);
     } catch (error) {
@@ -166,11 +210,11 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     }
   };
 
-  const handleCropSave = (croppedImage) => {
+  const handleCropSave = async (croppedImage) => {
     if (editingItemId) {
-      handleUpdateTimelineItem(editingItemId, { image: croppedImage });
+      await handleUpdateTimelineItem(editingItemId, { image: croppedImage });
     } else {
-      handleAddTimelineItem(croppedImage);
+      await handleAddTimelineItem(croppedImage);
     }
     setPendingImage(null);
     setEditingItemId(null);
@@ -181,14 +225,47 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     setEditingItemId(null);
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-8">
+        <RefreshCw className="w-8 h-8 text-alive-accent animate-spin mb-4" />
+        <p className="font-sans text-sm text-alive-text-muted">Loading...</p>
+      </div>
+    );
+  }
+
   // Tab 1: Reasons Why Editor
   if (activeTab === 0) {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-reasons">
-        <div className="flex items-center gap-3 mb-8">
-          <FileText className="w-5 h-5 text-alive-accent" />
-          <h2 className="font-serif text-xl text-alive-text-primary">Edit Reasons Why</h2>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <FileText className="w-5 h-5 text-alive-accent" />
+            <h2 className="font-serif text-xl text-alive-text-primary">Edit Reasons Why</h2>
+          </div>
+          <button
+            onClick={fetchReasons}
+            disabled={saving}
+            className="w-10 h-10 rounded-full bg-alive-surface flex items-center justify-center text-alive-text-muted hover:text-alive-accent transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+
+        {/* Error message */}
+        <AnimatePresence>
+          {imageError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="font-sans text-sm text-red-700">{imageError}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Add new reason */}
         <div className="flex gap-3 mb-8">
@@ -200,14 +277,17 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
             placeholder="Add a new reason..."
             data-testid="new-reason-input"
             className="flex-1 bg-alive-surface border border-alive-border rounded-lg px-4 py-3 font-sans text-sm text-alive-text-primary placeholder-alive-text-muted focus:outline-none focus:border-alive-accent transition-colors"
+            style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}
+            disabled={saving}
           />
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleAddReason}
             data-testid="add-reason-btn"
-            className="w-12 h-12 bg-alive-accent text-white rounded-lg flex items-center justify-center"
+            disabled={saving}
+            className="w-12 h-12 bg-alive-accent text-white rounded-lg flex items-center justify-center disabled:opacity-50"
           >
-            <Plus className="w-5 h-5" />
+            {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
           </motion.button>
         </div>
 
@@ -232,12 +312,15 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                       onKeyDown={(e) => e.key === 'Enter' && handleUpdateReason(reason.id)}
                       data-testid={`edit-reason-input-${index}`}
                       className="flex-1 bg-alive-surface border border-alive-border rounded px-3 py-2 font-sans text-sm focus:outline-none focus:border-alive-accent"
+                      style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}
                       autoFocus
+                      disabled={saving}
                     />
                     <button
                       onClick={() => handleUpdateReason(reason.id)}
                       data-testid={`save-reason-${index}`}
-                      className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center"
+                      disabled={saving}
+                      className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center disabled:opacity-50"
                     >
                       <Check className="w-4 h-4" />
                     </button>
@@ -253,7 +336,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-4">
-                <p className="font-sans text-sm text-alive-text-primary flex-1" style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}>{reason.text}</p>
+                    <p className="font-sans text-sm text-alive-text-primary flex-1" style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}>{reason.text}</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -268,7 +351,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                       <button
                         onClick={() => handleDeleteReason(reason.id)}
                         data-testid={`delete-reason-${index}`}
-                        className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center"
+                        disabled={saving}
+                        className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center disabled:opacity-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -296,9 +380,18 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   if (activeTab === 1) {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-timeline">
-        <div className="flex items-center gap-3 mb-8">
-          <Clock className="w-5 h-5 text-alive-accent" />
-          <h2 className="font-serif text-xl text-alive-text-primary">Edit Timeline</h2>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Clock className="w-5 h-5 text-alive-accent" />
+            <h2 className="font-serif text-xl text-alive-text-primary">Edit Timeline</h2>
+          </div>
+          <button
+            onClick={fetchTimeline}
+            disabled={saving}
+            className="w-10 h-10 rounded-full bg-alive-surface flex items-center justify-center text-alive-text-muted hover:text-alive-accent transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Error message */}
@@ -326,6 +419,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
             placeholder="Caption for new memory..."
             data-testid="new-timeline-caption"
             className="w-full bg-white border border-alive-border rounded-lg px-4 py-3 font-sans text-sm text-alive-text-primary placeholder-alive-text-muted focus:outline-none focus:border-alive-accent transition-colors mb-3"
+            style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}
+            disabled={saving}
           />
           <div className="flex gap-3">
             <input
@@ -339,7 +434,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
               whileTap={{ scale: 0.95 }}
               onClick={() => fileInputRef.current?.click()}
               data-testid="add-timeline-with-image"
-              className="flex-1 bg-white border border-alive-border rounded-lg py-3 font-sans text-sm text-alive-text-muted flex items-center justify-center gap-2 hover:border-alive-accent transition-colors"
+              disabled={saving}
+              className="flex-1 bg-white border border-alive-border rounded-lg py-3 font-sans text-sm text-alive-text-muted flex items-center justify-center gap-2 hover:border-alive-accent transition-colors disabled:opacity-50"
             >
               <Camera className="w-4 h-4" />
               Add with photo
@@ -348,9 +444,10 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleAddTimelineItem()}
               data-testid="add-timeline-btn"
-              className="flex-1 bg-alive-accent text-white rounded-lg py-3 font-sans text-sm flex items-center justify-center gap-2"
+              disabled={saving}
+              className="flex-1 bg-alive-accent text-white rounded-lg py-3 font-sans text-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Plus className="w-4 h-4" />
+              {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Add caption only
             </motion.button>
           </div>
@@ -394,7 +491,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                         </label>
                         <button
                           onClick={() => handleUpdateTimelineItem(item.id, { image: null })}
-                          className="w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                          disabled={saving}
+                          className="w-8 h-8 bg-black/50 rounded-full text-white flex items-center justify-center hover:bg-black/70 transition-colors disabled:opacity-50"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -411,7 +509,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                       />
                       <button
                         onClick={() => editFileInputRef.current?.click()}
-                        className="flex flex-col items-center text-alive-text-muted hover:text-alive-accent transition-colors"
+                        disabled={saving}
+                        className="flex flex-col items-center text-alive-text-muted hover:text-alive-accent transition-colors disabled:opacity-50"
                       >
                         <Camera className="w-10 h-10 mb-2 opacity-50" />
                         <span className="font-sans text-xs">Add photo</span>
@@ -430,11 +529,14 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                         onChange={(e) => setEditingCaption(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleUpdateTimelineItem(item.id, { caption: editingCaption })}
                         className="flex-1 bg-alive-surface border border-alive-border rounded px-3 py-2 font-sans text-sm focus:outline-none focus:border-alive-accent"
+                        style={{ fontFamily: "'Cairo', 'Manrope', sans-serif" }}
                         autoFocus
+                        disabled={saving}
                       />
                       <button
                         onClick={() => handleUpdateTimelineItem(item.id, { caption: editingCaption })}
-                        className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center"
+                        disabled={saving}
+                        className="w-10 h-10 bg-green-500 text-white rounded flex items-center justify-center disabled:opacity-50"
                       >
                         <Check className="w-4 h-4" />
                       </button>
@@ -465,7 +567,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
                         <button
                           onClick={() => handleDeleteTimelineItem(item.id)}
                           data-testid={`delete-timeline-${index}`}
-                          className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center"
+                          disabled={saving}
+                          className="w-8 h-8 text-alive-text-muted hover:text-red-500 transition-colors flex items-center justify-center disabled:opacity-50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

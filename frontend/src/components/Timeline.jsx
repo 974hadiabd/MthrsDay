@@ -1,36 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Heart, Play } from 'lucide-react';
+import { Camera, Heart, Play, RefreshCw } from 'lucide-react';
 import { getTimeline } from '../utils/storage';
 import { FullScreenImage } from './FullScreenImage';
 import { PresentMode } from './PresentMode';
 
 export const Timeline = () => {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [showPresentMode, setShowPresentMode] = useState(false);
 
-  useEffect(() => {
-    setItems(getTimeline());
+  const fetchTimeline = useCallback(async () => {
+    setLoading(true);
+    const data = await getTimeline();
+    setItems(data);
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    fetchTimeline();
+  }, [fetchTimeline]);
+
   const hasPhotos = items.some(item => item.image);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-8" data-testid="timeline-loading">
+        <RefreshCw className="w-8 h-8 text-alive-accent animate-spin mb-4" />
+        <p className="font-sans text-sm text-alive-text-muted">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="timeline-view">
       <div className="flex items-center justify-between mb-8">
         <h2 className="font-serif text-2xl text-alive-text-primary pl-8">You</h2>
-        {hasPhotos && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowPresentMode(true)}
-            data-testid="present-mode-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-alive-accent text-white rounded-full font-sans text-sm"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchTimeline}
+            className="w-10 h-10 rounded-full bg-alive-surface flex items-center justify-center text-alive-text-muted hover:text-alive-accent transition-colors"
+            data-testid="refresh-timeline-btn"
           >
-            <Play className="w-4 h-4" fill="white" />
-            Present
-          </motion.button>
-        )}
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          {hasPhotos && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowPresentMode(true)}
+              data-testid="present-mode-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-alive-accent text-white rounded-full font-sans text-sm"
+            >
+              <Play className="w-4 h-4" fill="white" />
+              Present
+            </motion.button>
+          )}
+        </div>
       </div>
       
       <div className="relative">
@@ -92,6 +118,14 @@ export const Timeline = () => {
           <p className="font-sans text-sm text-alive-text-muted">
             No timeline items yet
           </p>
+          <button
+            onClick={fetchTimeline}
+            className="mt-6 flex items-center gap-2 text-alive-accent font-sans text-sm"
+            data-testid="refresh-timeline"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
       )}
 

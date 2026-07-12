@@ -1,15 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { getReasons } from '../utils/storage';
 
 export const SwipeDeck = () => {
   const [reasons, setReasons] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchReasons = useCallback(async () => {
+    setLoading(true);
+    const data = await getReasons();
+    setReasons(data);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    setReasons(getReasons());
-  }, []);
+    fetchReasons();
+  }, [fetchReasons]);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -37,6 +45,15 @@ export const SwipeDeck = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-8" data-testid="reasons-loading">
+        <RefreshCw className="w-8 h-8 text-alive-accent animate-spin mb-4" />
+        <p className="font-sans text-sm text-alive-text-muted">Loading...</p>
+      </div>
+    );
+  }
+
   if (reasons.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8" data-testid="reasons-empty">
@@ -49,12 +66,29 @@ export const SwipeDeck = () => {
           <br />
           Check back soon.
         </p>
+        <button
+          onClick={fetchReasons}
+          className="mt-6 flex items-center gap-2 text-alive-accent font-sans text-sm"
+          data-testid="refresh-reasons"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8" data-testid="swipe-deck">
+      {/* Refresh button */}
+      <button
+        onClick={fetchReasons}
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-alive-surface flex items-center justify-center text-alive-text-muted hover:text-alive-accent transition-colors"
+        data-testid="refresh-reasons-btn"
+      >
+        <RefreshCw className="w-4 h-4" />
+      </button>
+
       {/* Progress indicator */}
       <div className="flex gap-1.5 mb-8">
         {reasons.map((_, i) => (

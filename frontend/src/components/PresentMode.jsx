@@ -1,18 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, RefreshCw } from 'lucide-react';
 import { getTimeline } from '../utils/storage';
 
 export const PresentMode = ({ onClose }) => {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCaption, setExpandedCaption] = useState(false);
 
-  useEffect(() => {
-    // Filter items that have images
-    const timeline = getTimeline().filter(item => item.image);
-    setItems(timeline);
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    const timeline = await getTimeline();
+    const withImages = timeline.filter(item => item.image);
+    setItems(withImages);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -42,6 +49,20 @@ export const PresentMode = ({ onClose }) => {
       setExpandedCaption(false);
     }
   };
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center"
+      >
+        <RefreshCw className="w-8 h-8 text-white animate-spin mb-4" />
+        <p className="text-white/60 font-sans text-sm">Loading...</p>
+      </motion.div>
+    );
+  }
 
   const currentItem = items[currentIndex];
   const captionLength = currentItem?.caption?.length || 0;
