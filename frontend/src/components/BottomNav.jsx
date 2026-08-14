@@ -30,7 +30,7 @@ export const BottomNav = ({ activeTab, onTabChange, isEditor }) => {
                   className={`w-6 h-6 transition-colors ${
                     isActive ? 'text-alive-accent' : 'text-alive-text-muted'
                   }`}
-                  fill={isActive && tab.id !== 2 ? '#DC2626' : 'none'}
+                  fill={isActive && tab.id !== 2 ? 'var(--alive-accent)' : 'none'}
                 />
                 {tab.label && (
                   <span

@@ -23,6 +23,14 @@ export const SwipeDeck = () => {
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
 
+  // The drag position (x) is shared across card mounts. Without resetting it
+  // whenever the visible card changes, it keeps whatever offset was left over
+  // from the previous drag - which is why back/forward could stop responding
+  // after a swipe (the new card would render already partially off-screen).
+  useEffect(() => {
+    x.set(0);
+  }, [currentIndex, x]);
+
   const handleDragEnd = (event, info) => {
     if (Math.abs(info.offset.x) > 100) {
       if (info.offset.x > 0 && currentIndex > 0) {
@@ -31,16 +39,20 @@ export const SwipeDeck = () => {
         setCurrentIndex(currentIndex + 1);
       }
     }
+    // Always snap back to center, whether or not the index changed.
+    x.set(0);
   };
 
   const goNext = () => {
     if (currentIndex < reasons.length - 1) {
+      x.set(0);
       setCurrentIndex(currentIndex + 1);
     }
   };
 
   const goPrev = () => {
     if (currentIndex > 0) {
+      x.set(0);
       setCurrentIndex(currentIndex - 1);
     }
   };
@@ -116,10 +128,10 @@ export const SwipeDeck = () => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="absolute inset-0 bg-white rounded-2xl shadow-[0_20px_40px_-15px_rgba(220,38,38,0.1)] border border-alive-border p-8 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing"
+            className="absolute inset-0 bg-white rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-alive-border p-8 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing"
           >
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-6">
-              <Heart className="w-6 h-6 text-alive-accent" fill="#DC2626" />
+            <div className="w-12 h-12 rounded-full bg-alive-accent-soft flex items-center justify-center mb-6">
+              <Heart className="w-6 h-6 text-alive-accent" fill="var(--alive-accent)" />
             </div>
             <p className="font-serif text-xl text-alive-text-primary text-center leading-relaxed" style={{ fontFamily: "'Cairo', 'Cormorant Garamond', serif" }}>
               {reasons[currentIndex]?.text}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff } from 'lucide-react';
-import { USER_PASSWORD, EDITOR_PASSWORD } from '../utils/storage';
+import { USER_PASSWORD, BABA_PASSWORD, EDITOR_PASSWORD } from '../utils/storage';
 import { CobwebSVG } from './CobwebSVG';
 
 export const PasswordGate = ({ onAuthenticate }) => {
@@ -17,6 +17,8 @@ export const PasswordGate = ({ onAuthenticate }) => {
       onAuthenticate('editor');
     } else if (password === USER_PASSWORD) {
       onAuthenticate('user');
+    } else if (password === BABA_PASSWORD) {
+      onAuthenticate('baba');
     } else {
       setError('Invalid password');
       setShake(true);

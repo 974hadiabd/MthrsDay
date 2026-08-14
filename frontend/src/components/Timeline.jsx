@@ -76,11 +76,11 @@ export const Timeline = () => {
             >
               {/* Dot on the line */}
               <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-alive-surface border-2 border-alive-accent flex items-center justify-center">
-                <Heart className="w-3 h-3 text-alive-accent" fill="#DC2626" />
+                <Heart className="w-3 h-3 text-alive-accent" fill="var(--alive-accent)" />
               </div>
 
               {/* Content card */}
-              <div className="bg-white rounded-xl border border-alive-border overflow-hidden shadow-[0_10px_30px_-10px_rgba(220,38,38,0.08)]">
+              <div className="bg-white rounded-xl border border-alive-border overflow-hidden shadow-[0_10px_30px_-10px_rgba(0,0,0,0.08)]">
                 {/* Image area */}
                 <div 
                   className="aspect-video bg-alive-surface flex items-center justify-center cursor-pointer"

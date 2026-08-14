@@ -15,11 +15,21 @@ const STAGES = {
   ALIVE_MAIN: 'alive_main'
 };
 
+// Per-account theme + greeting. 'user' is the 1234 (Mama) account,
+// 'baba' is the baba1234 (Baba) account, 'editor' has no theme/greeting.
+const ACCOUNT_CONFIG = {
+  user: { themeClass: '', accentColor: '#9333EA', greeting: 'Hala Ya Mama ❤️' },
+  baba: { themeClass: 'theme-blue', accentColor: '#2563EB', greeting: 'Hala Ya Baba ❤️' },
+  editor: { themeClass: '', accentColor: '#9333EA', greeting: null }
+};
+
 function App() {
   const [stage, setStage] = useState(STAGES.GATE);
-  const [role, setRole] = useState(null); // 'user' | 'editor'
+  const [role, setRole] = useState(null); // 'user' | 'baba' | 'editor'
   const [activeTab, setActiveTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const { themeClass, accentColor, greeting } = ACCOUNT_CONFIG[role] || ACCOUNT_CONFIG.user;
 
   useEffect(() => {
     initializeStorage();
@@ -57,19 +67,33 @@ function App() {
 
   // Render heart transition (user only, first time)
   if (stage === STAGES.VOID_HEART) {
-    return <HeartTransition onComplete={handleHeartComplete} />;
+    return (
+      <div className={themeClass}>
+        <HeartTransition onComplete={handleHeartComplete} accentColor={accentColor} />
+      </div>
+    );
   }
 
   // Render main app
   const isEditor = role === 'editor';
 
   return (
-    <div className="fixed inset-0 bg-alive-bg overflow-hidden" data-testid="main-app">
+    <div className={`fixed inset-0 bg-alive-bg overflow-hidden ${themeClass}`} data-testid="main-app">
       {/* Safe area top */}
       <div className="h-safe-area-top bg-alive-bg" />
       
       {/* Main content */}
       <div className="flex flex-col h-full pb-24">
+        {/* Account greeting */}
+        {greeting && (
+          <p
+            className="font-serif text-center text-lg text-alive-accent pt-4 pb-2 select-none"
+            data-testid="account-greeting"
+          >
+            {greeting}
+          </p>
+        )}
+
         {/* Tab content */}
         {activeTab === 0 && (
           isEditor ? (

@@ -18,8 +18,9 @@
     --alive-border: #E5E5E4;
     --alive-text-muted: #737373;
     --alive-text-primary: #171717;
-    --alive-accent: #DC2626;
-    --alive-accent-light: #FCA5A5;
+    --alive-accent: #9333EA;
+    --alive-accent-light: #D8B4FE;
+    --alive-accent-soft: #F3E8FF;
 
     /* Shadcn compatibility */
     --background: 0 0% 100%;
@@ -42,6 +43,13 @@
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
     --radius: 0.5rem;
+  }
+
+  /* Baba account theme - blue */
+  .theme-blue {
+    --alive-accent: #2563EB;
+    --alive-accent-light: #93C5FD;
+    --alive-accent-soft: #DBEAFE;
   }
 }
 
@@ -90,6 +98,7 @@
   .text-alive-text-primary { color: var(--alive-text-primary); }
   .text-alive-accent { color: var(--alive-accent); }
   .bg-alive-accent { background-color: var(--alive-accent); }
+  .bg-alive-accent-soft { background-color: var(--alive-accent-soft); }
 }
 
 /* Debug wrapper */

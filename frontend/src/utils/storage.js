@@ -4,6 +4,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 // Passwords - Change USER_PASSWORD here to set a custom user password
 export const USER_PASSWORD = '1234';
+export const BABA_PASSWORD = 'baba1234';
 export const EDITOR_PASSWORD = 'Hxdi.132';
 
 // ============ REASONS API ============

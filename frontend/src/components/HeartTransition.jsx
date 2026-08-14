@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHeartAudio } from '../hooks/useHeartAudio';
 import { CobwebSVG } from './CobwebSVG';
 
-export const HeartTransition = ({ onComplete }) => {
+export const HeartTransition = ({ onComplete, accentColor = '#9333EA' }) => {
   const [isAlive, setIsAlive] = useState(false);
   const [showCaption, setShowCaption] = useState(false);
   const { playFlatline, stopFlatline, playHeartbeat, cleanup } = useHeartAudio();
@@ -94,10 +94,10 @@ export const HeartTransition = ({ onComplete }) => {
               fill="none"
               strokeWidth="2"
               animate={{
-                stroke: isAlive ? '#DC2626' : '#4A0000',
+                stroke: isAlive ? accentColor : '#4A0000',
                 x: isAlive ? 0 : -3,
                 rotate: isAlive ? 0 : -5,
-                fill: isAlive ? '#DC2626' : 'none'
+                fill: isAlive ? accentColor : 'none'
               }}
               transition={{ duration: 0.5, type: 'spring' }}
               style={{ transformOrigin: '50px 50px' }}
@@ -108,10 +108,10 @@ export const HeartTransition = ({ onComplete }) => {
               fill="none"
               strokeWidth="2"
               animate={{
-                stroke: isAlive ? '#DC2626' : '#4A0000',
+                stroke: isAlive ? accentColor : '#4A0000',
                 x: isAlive ? 0 : 3,
                 rotate: isAlive ? 0 : 5,
-                fill: isAlive ? '#DC2626' : 'none'
+                fill: isAlive ? accentColor : 'none'
               }}
               transition={{ duration: 0.5, type: 'spring' }}
               style={{ transformOrigin: '50px 50px' }}
@@ -146,7 +146,7 @@ export const HeartTransition = ({ onComplete }) => {
               fill="none"
               strokeWidth="2"
               animate={{
-                stroke: isAlive ? '#DC2626' : '#4A0000'
+                stroke: isAlive ? accentColor : '#4A0000'
               }}
               transition={{ duration: 0.3 }}
             />
