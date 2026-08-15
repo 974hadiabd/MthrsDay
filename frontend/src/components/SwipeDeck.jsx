@@ -3,17 +3,17 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { Heart, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { getReasons } from '../utils/storage';
 
-export const SwipeDeck = () => {
+export const SwipeDeck = ({ account = 'user' }) => {
   const [reasons, setReasons] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchReasons = useCallback(async () => {
     setLoading(true);
-    const data = await getReasons();
+    const data = await getReasons(account);
     setReasons(data);
     setLoading(false);
-  }, []);
+  }, [account]);
 
   useEffect(() => {
     fetchReasons();

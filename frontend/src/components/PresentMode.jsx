@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { ChevronLeft, ChevronRight, X, RefreshCw } from 'lucide-react';
 import { getTimeline } from '../utils/storage';
 
-export const PresentMode = ({ onClose }) => {
+export const PresentMode = ({ onClose, account = 'user' }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -11,11 +11,11 @@ export const PresentMode = ({ onClose }) => {
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
-    const timeline = await getTimeline();
+    const timeline = await getTimeline(account);
     const withImages = timeline.filter(item => item.image);
     setItems(withImages);
     setLoading(false);
-  }, []);
+  }, [account]);
 
   useEffect(() => {
     fetchItems();

@@ -5,7 +5,7 @@ import { getTimeline } from '../utils/storage';
 import { FullScreenImage } from './FullScreenImage';
 import { PresentMode } from './PresentMode';
 
-export const Timeline = () => {
+export const Timeline = ({ account = 'user' }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fullScreenImage, setFullScreenImage] = useState(null);
@@ -13,10 +13,10 @@ export const Timeline = () => {
 
   const fetchTimeline = useCallback(async () => {
     setLoading(true);
-    const data = await getTimeline();
+    const data = await getTimeline(account);
     setItems(data);
     setLoading(false);
-  }, []);
+  }, [account]);
 
   useEffect(() => {
     fetchTimeline();
@@ -140,7 +140,7 @@ export const Timeline = () => {
 
       {/* Present mode */}
       {showPresentMode && (
-        <PresentMode onClose={() => setShowPresentMode(false)} />
+        <PresentMode onClose={() => setShowPresentMode(false)} account={account} />
       )}
     </div>
   );
