@@ -8,10 +8,11 @@ export const BABA_PASSWORD = 'baba1234';
 export const EDITOR_PASSWORD = 'Hxdi.132';
 
 // ============ REASONS API ============
+// account: 'user' (Mama / password 1234) or 'baba' (password baba1234)
 
-export const getReasons = async () => {
+export const getReasons = async (account = 'user') => {
   try {
-    const response = await axios.get(`${API_URL}/reasons`);
+    const response = await axios.get(`${API_URL}/reasons`, { params: { account } });
     return response.data;
   } catch (error) {
     console.error('Error fetching reasons:', error);
@@ -19,9 +20,9 @@ export const getReasons = async () => {
   }
 };
 
-export const addReason = async (text) => {
+export const addReason = async (text, account = 'user') => {
   try {
-    const response = await axios.post(`${API_URL}/reasons`, { text });
+    const response = await axios.post(`${API_URL}/reasons`, { text, account });
     return response.data;
   } catch (error) {
     console.error('Error adding reason:', error);
@@ -51,9 +52,9 @@ export const deleteReason = async (id) => {
 
 // ============ TIMELINE API ============
 
-export const getTimeline = async () => {
+export const getTimeline = async (account = 'user') => {
   try {
-    const response = await axios.get(`${API_URL}/timeline`);
+    const response = await axios.get(`${API_URL}/timeline`, { params: { account } });
     return response.data;
   } catch (error) {
     console.error('Error fetching timeline:', error);
@@ -61,9 +62,9 @@ export const getTimeline = async () => {
   }
 };
 
-export const addTimelineItem = async (caption, image = null) => {
+export const addTimelineItem = async (caption, image = null, account = 'user') => {
   try {
-    const response = await axios.post(`${API_URL}/timeline`, { caption, image });
+    const response = await axios.post(`${API_URL}/timeline`, { caption, image, account });
     return response.data;
   } catch (error) {
     console.error('Error adding timeline item:', error);

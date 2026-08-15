@@ -103,7 +103,7 @@ function App() {
               onDataChange={handleDataChange} 
             />
           ) : (
-            <SwipeDeck key={`swipe-${refreshKey}`} />
+            <SwipeDeck key={`swipe-${refreshKey}`} account={role} />
           )
         )}
         {activeTab === 1 && (
@@ -114,7 +114,7 @@ function App() {
               onDataChange={handleDataChange} 
             />
           ) : (
-            <Timeline key={`timeline-${refreshKey}`} />
+            <Timeline key={`timeline-${refreshKey}`} account={role} />
           )
         )}
         {activeTab === 2 && isEditor && (

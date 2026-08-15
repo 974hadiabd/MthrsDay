@@ -58,6 +58,7 @@ const processImage = (file) => {
 };
 
 export const EditorDashboard = ({ activeTab, onDataChange }) => {
+  const [editingAccount, setEditingAccount] = useState('user'); // 'user' (Mama) | 'baba'
   const [reasons, setReasons] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,14 +77,14 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   const editFileInputRef = useRef(null);
 
   const fetchReasons = useCallback(async () => {
-    const data = await getReasons();
+    const data = await getReasons(editingAccount);
     setReasons(data);
-  }, []);
+  }, [editingAccount]);
 
   const fetchTimeline = useCallback(async () => {
-    const data = await getTimeline();
+    const data = await getTimeline(editingAccount);
     setTimeline(data);
-  }, []);
+  }, [editingAccount]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -106,7 +107,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     if (!newReason.trim() || saving) return;
     setSaving(true);
     try {
-      await addReason(newReason.trim());
+      await addReason(newReason.trim(), editingAccount);
       await fetchReasons();
       setNewReason('');
       onDataChange?.();
@@ -149,7 +150,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     if ((!newCaption.trim() && !imageData) || saving) return;
     setSaving(true);
     try {
-      await addTimelineItem(newCaption.trim() || 'New memory', imageData);
+      await addTimelineItem(newCaption.trim() || 'New memory', imageData, editingAccount);
       await fetchTimeline();
       setNewCaption('');
       onDataChange?.();
@@ -234,11 +235,41 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
     );
   }
 
+  // Account switcher shown at the top of both editor tabs
+  const AccountSwitcher = () => (
+    <div className="flex items-center gap-1 bg-alive-surface rounded-full p-1 mb-6 w-fit" data-testid="account-switcher">
+      <button
+        onClick={() => setEditingAccount('user')}
+        disabled={saving}
+        data-testid="edit-account-mama"
+        className={`px-4 py-2 rounded-full font-sans text-sm transition-colors ${
+          editingAccount === 'user'
+            ? 'bg-white text-purple-700 shadow-sm font-semibold'
+            : 'text-alive-text-muted'
+        }`}
+      >
+        Mama (1234)
+      </button>
+      <button
+        onClick={() => setEditingAccount('baba')}
+        disabled={saving}
+        data-testid="edit-account-baba"
+        className={`px-4 py-2 rounded-full font-sans text-sm transition-colors ${
+          editingAccount === 'baba'
+            ? 'bg-white text-blue-700 shadow-sm font-semibold'
+            : 'text-alive-text-muted'
+        }`}
+      >
+        Baba (baba1234)
+      </button>
+    </div>
+  );
+
   // Tab 1: Reasons Why Editor
   if (activeTab === 0) {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-reasons">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-alive-accent" />
             <h2 className="font-serif text-xl text-alive-text-primary">Edit Reasons Why</h2>
@@ -251,6 +282,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
             <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        <AccountSwitcher />
 
         {/* Error message */}
         <AnimatePresence>
@@ -380,7 +413,7 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
   if (activeTab === 1) {
     return (
       <div className="flex-1 overflow-y-auto px-6 py-8" data-testid="editor-timeline">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Clock className="w-5 h-5 text-alive-accent" />
             <h2 className="font-serif text-xl text-alive-text-primary">Edit Timeline</h2>
@@ -393,6 +426,8 @@ export const EditorDashboard = ({ activeTab, onDataChange }) => {
             <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        <AccountSwitcher />
 
         {/* Error message */}
         <AnimatePresence>

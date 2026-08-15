@@ -28,6 +28,7 @@ api_router = APIRouter(prefix="/api")
 
 class ReasonCreate(BaseModel):
     text: str
+    account: str = "user"
 
 class ReasonUpdate(BaseModel):
     text: str
@@ -35,11 +36,13 @@ class ReasonUpdate(BaseModel):
 class Reason(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     text: str
+    account: str = "user"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class TimelineItemCreate(BaseModel):
     caption: str
     image: Optional[str] = None
+    account: str = "user"
 
 class TimelineItemUpdate(BaseModel):
     caption: Optional[str] = None
@@ -49,18 +52,27 @@ class TimelineItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     caption: str
     image: Optional[str] = None
+    account: str = "user"
     date: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ============ REASONS ENDPOINTS ============
 
+def _account_query(account: str) -> dict:
+    """Existing documents created before accounts were separated have no
+    'account' field. Treat those as belonging to 'user' (the original account)
+    so nothing that was already saved appears to vanish."""
+    if account == "user":
+        return {"$or": [{"account": "user"}, {"account": {"$exists": False}}]}
+    return {"account": account}
+
 @api_router.get("/reasons", response_model=List[Reason])
-async def get_reasons():
-    reasons = await db.reasons.find({}, {"_id": 0}).to_list(1000)
+async def get_reasons(account: str = "user"):
+    reasons = await db.reasons.find(_account_query(account), {"_id": 0}).to_list(1000)
     return reasons
 
 @api_router.post("/reasons", response_model=Reason)
 async def create_reason(data: ReasonCreate):
-    reason = Reason(text=data.text)
+    reason = Reason(text=data.text, account=data.account)
     doc = reason.model_dump()
     await db.reasons.insert_one(doc)
     return reason
@@ -87,13 +99,13 @@ async def delete_reason(reason_id: str):
 # ============ TIMELINE ENDPOINTS ============
 
 @api_router.get("/timeline", response_model=List[TimelineItem])
-async def get_timeline():
-    items = await db.timeline.find({}, {"_id": 0}).to_list(1000)
+async def get_timeline(account: str = "user"):
+    items = await db.timeline.find(_account_query(account), {"_id": 0}).to_list(1000)
     return items
 
 @api_router.post("/timeline", response_model=TimelineItem)
 async def create_timeline_item(data: TimelineItemCreate):
-    item = TimelineItem(caption=data.caption, image=data.image)
+    item = TimelineItem(caption=data.caption, image=data.image, account=data.account)
     doc = item.model_dump()
     await db.timeline.insert_one(doc)
     return item
